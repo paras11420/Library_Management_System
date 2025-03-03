@@ -25,8 +25,9 @@ def send_borrow_email(user_email, book_title, due_date):
 @shared_task
 def send_overdue_notifications():
     overdue_books = BorrowedBook.objects.filter(
-        due_date__lt=now(), returned=False
+        due_date__lt=now(), returned_at__isnull=True  # Fixed the incorrect field reference
     ).select_related("user", "book")
+
     count = 0
     for record in overdue_books:
         if record.user and record.user.email:
@@ -43,3 +44,26 @@ def send_overdue_notifications():
                 logger.error("Error sending overdue email to %s: %s", record.user.email, str(e))
                 continue
     return f'Sent {count} overdue reminders'
+
+@shared_task
+def send_due_date_reminders():
+    upcoming_due_books = BorrowedBook.objects.filter(
+        due_date__date=now().date(), returned_at__isnull=True
+    ).select_related("user", "book")
+
+    count = 0
+    for record in upcoming_due_books:
+        if record.user and record.user.email:
+            subject = 'Upcoming Due Date Reminder'
+            message = f'The book "{record.book.title}" is due today. Please return it on time to avoid a fine.'
+            from_email = settings.DEFAULT_FROM_EMAIL
+            try:
+                send_mail(subject, message, from_email, [record.user.email], fail_silently=False)
+                count += 1
+            except BadHeaderError:
+                logger.warning("Invalid header for email %s", record.user.email)
+                continue
+            except Exception as e:
+                logger.error("Error sending due date email to %s: %s", record.user.email, str(e))
+                continue
+    return f'Sent {count} due date reminders'
