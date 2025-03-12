@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 def now_plus_14_days():
     return now() + timedelta(days=14)
 
+# Expose default_due_date so migrations can reference it.
 default_due_date = now_plus_14_days
 
 class User(AbstractUser):
@@ -32,7 +33,6 @@ class Book(models.Model):
 
     @property
     def available_copies(self):
-        # Calculate available copies as total quantity minus currently borrowed copies
         from .models import BorrowedBook  # local import to avoid circular import issues
         return self.quantity - BorrowedBook.objects.filter(book=self, returned_at__isnull=True).count()
 
@@ -44,26 +44,34 @@ class BorrowedBook(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     borrowed_at = models.DateTimeField(auto_now_add=True)
-    due_date = models.DateTimeField(default=now_plus_14_days)
+    due_date = models.DateTimeField(default=default_due_date)
     returned_at = models.DateTimeField(null=True, blank=True)
     fine_amount = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
 
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            if self.book.available_copies > 0:
-                self.book.quantity -= 1
-                self.book.save()
-            else:
-                raise ValueError("No copies available for borrowing.")
-        super().save(*args, **kwargs)
+    def can_borrow(self):
+        if not self.pk and self.book.available_copies > 0:
+            self.book.quantity -= 1
+            self.book.save()
+        elif not self.pk:
+            raise ValueError("No copies available for borrowing.")
 
     def return_book(self):
-        self.returned_at = now()
-        overdue_days = max(0, (self.returned_at - self.due_date).days)
-        self.fine_amount = overdue_days * 5
-        self.book.quantity += 1
-        self.book.save()
-        super().save(update_fields=['returned_at', 'fine_amount'])
+        if not self.returned_at:  # Ensure book is not already returned
+            self.returned_at = now()
+            overdue_days = max(0, (self.returned_at - self.due_date).days)
+            self.fine_amount = overdue_days * 5
+            self.book.quantity += 1
+            self.book.save()
+            super().save(update_fields=['returned_at', 'fine_amount'])
+
+    def clean(self):
+        if not self.returned_at:
+            self.can_borrow()
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user} borrowed {self.book} (Due: {self.due_date}, Returned: {self.returned_at or 'Not Returned'})"

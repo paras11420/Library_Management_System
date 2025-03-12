@@ -1,10 +1,14 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from django.utils.timezone import now  # Ensure timezone-aware datetime
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-0+tfj73o^tyv6_2ry7+st8g9@*16e#=f7h4=f2kv$!(1)5+jd=')
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-0+tfj73o^tyv6_2ry7+st8g9@*16e#=f7h4=f2kv$!(1)5+jd='
+)
 
 DEBUG = True  # Set to False in production
 
@@ -23,30 +27,12 @@ INSTALLED_APPS = [
     'library',
     'celery',
     'django_celery_beat',
-    
 ]
-
-# Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',  # Allow any permission by default (NOT RECOMMENDED)
-    ),
-}
-
-AUTH_USER_MODEL = 'library.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # CORS middleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -54,14 +40,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # Change to specific origins in production
-
 ROOT_URLCONF = 'library_system.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # Create this folder if it doesn't exist
+        'DIRS': [BASE_DIR / "templates"],  # Ensure this folder exists and contains your templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -84,30 +68,57 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 6}},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 6},
+    },
 ]
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
-USE_TZ = True
+USE_TZ = True  # Required for timezone-aware datetimes
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]  # Create this folder if it doesn't exist
-STATIC_ROOT = BASE_DIR / "staticfiles"  # For production
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 📌 **Fix for EMAIL_HOST_USER error**
+AUTH_USER_MODEL = 'library.User'
+
+CORS_ALLOW_ALL_ORIGINS = True  # Change to specific origins in production
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Email Configuration (SMTP with Gmail)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'Paras11420@gmail.com'  # Replace with your Gmail
-EMAIL_HOST_PASSWORD = 'hwfr tmsx ynuo siep'  # Replace with the App Password
+EMAIL_HOST_USER = 'Paras11420@gmail.com'  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD = 'hwfr tmsx ynuo siep'  # Use your Gmail App Password here
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-
-# 📌 **Fix for naive datetime warning**
-import django.utils.timezone
-USE_TZ = True  # Ensure this is set to True
