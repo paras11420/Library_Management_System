@@ -1,108 +1,177 @@
-// src/pages/Books.jsx
-import React, { useEffect, useState } from "react";
-import API from "../api";
-import { borrowBook, reserveBook } from "../services/bookService";
-import SearchBar from "../components/SearchBar";
+import React from "react";
+import { Button, Card, Row, Col, Badge } from "react-bootstrap";
+import { borrowBook, reserveBook, deleteBook } from "../services/bookService";
+import API from "../api"; // We'll need this for the borrow-request endpoint
 
-function Books() {
-  const [books, setBooks] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function BookList({ books, role }) {
+  const isLibrarian = role === "librarian" || role === "admin";
+  const isMember = role === "member";
 
-  useEffect(() => {
-    API.get("/books/")
-      .then((response) => {
-        console.log("Books API response:", response.data);
-        // Check if response.data is an array or an object with an 'available_books' key.
-        const data = Array.isArray(response.data)
-          ? response.data
-          : response.data.available_books || [];
-        setBooks(data);
-        setFilteredBooks(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching books:", err.response || err);
-        setError("Error fetching books");
-        setLoading(false);
-      });
-  }, []);
-
-  const handleSearch = (query) => {
-    const filtered = books.filter((book) =>
-      book.title.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredBooks(filtered);
+  const getEstimatedWaitTime = (book) => {
+    return "7 days"; // Placeholder logic
   };
 
-  if (loading) {
-    return (
-      <div className="container mt-4">
-        <p>Loading books...</p>
-      </div>
-    );
-  }
+  const handleDelete = (bookId) => {
+    if (window.confirm("Are you sure you want to delete this book?")) {
+      deleteBook(bookId)
+        .then(() => {
+          alert("Book deleted successfully!");
+        })
+        .catch((err) => {
+          console.error("Delete error:", err.response || err);
+          alert("Error deleting the book.");
+        });
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="container mt-4">
-        <p className="text-danger">{error}</p>
-      </div>
-    );
-  }
+  const handleEdit = (bookId) => {
+    alert("Redirect to Edit Book page for book ID: " + bookId);
+  };
+
+  const handleBorrowRequest = (bookId) => {
+    API.post(`/books/${bookId}/borrow-request/`)
+      .then((res) => {
+        alert(res.data.message);
+      })
+      .catch((err) => {
+        console.error("Borrow request error:", err.response || err);
+        alert(err.response?.data?.message || "Error submitting borrow request");
+      });
+  };
 
   return (
-    <div className="container mt-4">
-      <h1>Available Books</h1>
-      <SearchBar onSearch={handleSearch} />
-      {filteredBooks.length > 0 ? (
-        <ul className="list-group">
-          {filteredBooks.map((book) => (
-            <li
-              key={book.id}
-              className="list-group-item d-flex justify-content-between align-items-center"
-            >
-              {book.title} –{" "}
-              <span className="badge bg-secondary">
-                {book.available_copies} copies
-              </span>
-              <div>
-                <button
-                  className="btn btn-success me-2 btn-sm"
-                  onClick={() => {
-                    borrowBook(book.id)
-                      .then((res) => alert(res.data.message))
-                      .catch((err) => {
-                        console.error("Borrow error:", err.response || err);
-                        alert("Error borrowing the book");
-                      });
-                  }}
-                >
-                  Borrow
-                </button>
-                <button
-                  className="btn btn-warning btn-sm"
-                  onClick={() => {
-                    reserveBook(book.id)
-                      .then((res) => alert(res.data.message))
-                      .catch((err) => {
-                        console.error("Reserve error:", err.response || err);
-                        alert("Error reserving the book");
-                      });
-                  }}
-                >
-                  Reserve
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No books found.</p>
-      )}
-    </div>
+    <Row className="gy-3">
+      {books.map((book) => {
+        const isAvailable = book.available_copies > 0;
+
+        return (
+          <Col md={4} key={book.id}>
+            <Card>
+              {book.cover_image && (
+                <Card.Img
+                  variant="top"
+                  src={`http://localhost:8000${book.cover_image}`}
+                  alt={book.title}
+                  style={{ height: "200px", objectFit: "cover" }}
+                />
+              )}
+              <Card.Body>
+                <Card.Title>{book.title}</Card.Title>
+                <Card.Subtitle className="mb-2 text-muted">
+                  {book.author}
+                </Card.Subtitle>
+
+                <Card.Text>
+                  <strong>ISBN:</strong> {book.isbn}
+                </Card.Text>
+                <Card.Text>
+                  <strong>Copies Available:</strong>{" "}
+                  <Badge bg="secondary">{book.available_copies}</Badge>
+                </Card.Text>
+
+                <Card.Text>
+                  <strong>Status:</strong>{" "}
+                  {isAvailable ? (
+                    <Badge bg="success">Available</Badge>
+                  ) : (
+                    <Badge bg="danger">Not Available</Badge>
+                  )}
+                </Card.Text>
+
+                {!isAvailable && (
+                  <Card.Text>
+                    <strong>Estimated Wait Time:</strong>{" "}
+                    {getEstimatedWaitTime(book)}
+                  </Card.Text>
+                )}
+
+                <div className="d-flex flex-wrap gap-2">
+                  {/* 👤 Member: Request Borrow */}
+                  {isMember && isAvailable && (
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => handleBorrowRequest(book.id)}
+                    >
+                      Request Borrow
+                    </Button>
+                  )}
+
+                  {/* 👤 Member: Reserve if not available */}
+                  {isMember && !isAvailable && (
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => {
+                        reserveBook(book.id)
+                          .then((res) => alert(res.data.message))
+                          .catch((err) => {
+                            console.error(
+                              "Reserve error:",
+                              err.response || err
+                            );
+                            alert("Error reserving the book");
+                          });
+                      }}
+                    >
+                      Reserve
+                    </Button>
+                  )}
+
+                  {/* 👤 Member only: Contact Librarian */}
+                  {isMember && (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() =>
+                        (window.location.href =
+                          "mailto:paras11420@gmail.com?subject=Assistance%20with%20Book%20Inquiry")
+                      }
+                    >
+                      Contact Librarian
+                    </Button>
+                  )}
+
+                  {/* 👨‍💼 Librarian/Admin only: View Reservations */}
+                  {isLibrarian && (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => {
+                        alert("Navigate to reservation queue page.");
+                      }}
+                    >
+                      View Reservations
+                    </Button>
+                  )}
+
+                  {/* 👨‍💼 Librarian/Admin only: Edit & Delete */}
+                  {isLibrarian && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleEdit(book.id)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(book.id)}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        );
+      })}
+    </Row>
   );
 }
 
-export default Books;
+export default BookList;

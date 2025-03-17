@@ -23,6 +23,11 @@ class Book(models.Model):
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255)
     isbn = models.CharField(max_length=13, unique=True)
+    # New fields for enhanced book details:
+    cover_image = models.ImageField(upload_to="book_covers/", null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    category = models.CharField(max_length=100, null=True, blank=True)
+    
     is_borrowed = models.BooleanField(default=False)
     borrowed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
@@ -92,3 +97,18 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"Reservation for {self.book.title} by {self.user.username}"
+
+# New Model for Borrow Requests (for notifications and in-dashboard processing)
+class BorrowRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    book = models.ForeignKey(Book, related_name="borrow_requests", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Borrow Request for {self.book.title} by {self.user.username} ({self.status})"

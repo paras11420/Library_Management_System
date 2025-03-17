@@ -15,3 +15,8 @@ export const reserveBook = (bookId) => {
 export const returnBook = (borrowedBookId) => {
   return API.post(`/books/${borrowedBookId}/return/`);
 };
+
+// ✅ Function to delete a book
+export const deleteBook = (bookId) => {
+  return API.delete(`/books/${bookId}/`);
+};
