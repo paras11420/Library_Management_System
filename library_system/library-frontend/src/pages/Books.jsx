@@ -1,9 +1,9 @@
 // src/pages/Books.jsx
 import React, { useEffect, useState } from "react";
 import API from "../api";
-import SearchBar from "../components/SearchBar";
-import BookList from "../components/BookList";
-import BookForm from "../components/BookForm";
+import SearchBar from "../components/SearchBar.jsx";
+import BookList from "../components/BookList.jsx";
+import BookForm from "../components/BookForm.jsx";
 import { toast } from "react-toastify";
 
 function Books() {

@@ -14,9 +14,9 @@ function Login() {
       const response = await API.post("/token/", { username, password });
       console.log("Login response data:", response.data);
 
-      // Save tokens
-      localStorage.setItem("access_token", response.data.access);
-      localStorage.setItem("refresh_token", response.data.refresh);
+      // Save tokens with consistent key names
+      localStorage.setItem("token", response.data.access);
+      localStorage.setItem("refresh", response.data.refresh);
 
       // Save the role if available
       if (response.data.role) {

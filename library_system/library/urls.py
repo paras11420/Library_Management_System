@@ -13,7 +13,12 @@ from .views import (
     register_user,
     MyTokenObtainPairView,
     UserListView,
-    BorrowRequestView,  # New endpoint for borrow requests
+    BorrowRequestView,
+    BookReservationsView,  # Enhanced Reservation Queue view
+    # New Reservation Management Endpoints:
+    CancelReservationView,
+    FulfillReservationView,
+    ExportReservationsCSVView,
 )
 
 urlpatterns = [
@@ -25,6 +30,12 @@ urlpatterns = [
     path('books/<int:borrowed_book_id>/return/', ReturnBookView.as_view(), name='return_book'),
     path('books/borrowed/', BorrowedBooksView.as_view(), name='borrowed_books'),
     path('search/', BookSearchView.as_view(), name='book_search'),
+    path('books/<int:book_id>/reservations/', BookReservationsView.as_view(), name='book-reservations'),
+
+    # New Reservation Management Endpoints
+    path('reservation/cancel/<int:reservation_id>/', CancelReservationView.as_view(), name='cancel_reservation'),
+    path('reservation/fulfill/<int:reservation_id>/', FulfillReservationView.as_view(), name='fulfill_reservation'),
+    path('books/<int:book_id>/reservations/export/', ExportReservationsCSVView.as_view(), name='export_reservations_csv'),
 
     # Reservations & Dashboard
     path('reservations/', UserReservationsView.as_view(), name='user_reservations'),

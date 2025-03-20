@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import IssueBook from "./pages/IssueBook";
 import UsersPage from "./pages/UsersPage";
 import BookForm from "./components/BookForm";
+import ReservationQueue from "./pages/ReservationQueue";
 
 // Toastify imports
 import { ToastContainer, toast } from "react-toastify";
@@ -69,6 +70,10 @@ function App() {
             <Route
               path="/books/add"
               element={<BookForm onSubmit={handleAddBook} />}
+            />
+            <Route
+              path="/reservations/:bookId"
+              element={<ReservationQueue />}
             />
             {/* Optional: Route for editing a book */}
             {/* <Route path="/books/edit/:id" element={<EditBook />} /> */}

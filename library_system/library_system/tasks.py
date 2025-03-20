@@ -1,10 +1,11 @@
 from celery import shared_task  
 from django.core.mail import send_mail, BadHeaderError, EmailMultiAlternatives
 from django.conf import settings
-from django.utils.timezone import now
-from django.template.loader import render_to_string  # Added import
-from library.models import BorrowedBook  
+from django.utils.timezone import now, timezone
+from django.template.loader import render_to_string
+from library.models import BorrowedBook, Reservation
 import logging
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -92,3 +93,20 @@ def send_due_date_reminders():
                 logger.error("Error sending due date email to %s: %s", record.user.email, str(e))
                 continue
     return f'Sent {count} due date reminders'
+
+# ------------------------------
+# New Feature: Auto-Cancel Expired Reservations
+# ------------------------------
+@shared_task
+def auto_cancel_expired_reservations():
+    """
+    Automatically cancel reservations that have been pending for more than a specified period.
+    Change 'expiration_period' as needed.
+    """
+    expiration_period = timedelta(days=3)  # Cancel if pending > 3 days
+    expiration_time = now() - expiration_period
+    expired_reservations = Reservation.objects.filter(status='pending', reserved_at__lt=expiration_time)
+    count = expired_reservations.count()
+    expired_reservations.update(status='cancelled')
+    logger.info("Auto-cancelled %d expired reservations", count)
+    return f'Auto-cancelled {count} expired reservations'

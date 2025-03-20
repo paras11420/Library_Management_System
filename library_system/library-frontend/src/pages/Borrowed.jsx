@@ -1,7 +1,7 @@
 // src/pages/Borrowed.jsx
 import React, { useEffect, useState } from "react";
 import API from "../api";
-import BorrowedBooks from "../components/BorrowedBooks";
+import BorrowedBooks from "../components/BorrowedBooks.jsx";
 
 function Borrowed() {
   const [borrowedBooks, setBorrowedBooks] = useState([]);

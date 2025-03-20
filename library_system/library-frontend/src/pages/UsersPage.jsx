@@ -6,7 +6,7 @@ function UsersPage() {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem("token");
       if (!token) {
         console.error("No access token found.");
         return;

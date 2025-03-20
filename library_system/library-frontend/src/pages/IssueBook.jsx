@@ -9,90 +9,118 @@ function IssueBook() {
   const [selectedBook, setSelectedBook] = useState("");
   const [dueDate, setDueDate] = useState(""); // Format: YYYY-MM-DD
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // Fetch all users (ensure backend returns { users: [...] })
+    // Fetch all users
     API.get("/users/")
       .then((res) => setUsers(res.data.users || []))
-      .catch((err) => console.error("Error fetching users:", err));
+      .catch((err) => {
+        console.error("Error fetching users:", err);
+        setError("Failed to load users.");
+      });
 
-    // Fetch available books (ensure backend returns { available_books: [...] })
+    // Fetch available books
     API.get("/books/")
-      .then((res) => setBooks(res.data.available_books || []))
-      .catch((err) => console.error("Error fetching books:", err));
+      .then((res) => {
+        // If your backend returns { available_books: [...] }
+        // or you might have to handle an array directly
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data.available_books || [];
+        setBooks(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching books:", err);
+        setError("Failed to load books.");
+      });
   }, []);
 
-  const handleIssueBook = () => {
+  const handleIssueBook = async () => {
     if (!selectedUser || !selectedBook || !dueDate) {
-      setMessage("Please select a user, a book, and a due date.");
+      setMessage("");
+      setError("Please select a user, a book, and a due date.");
       return;
     }
 
-    // Approach 1: Use the existing borrow endpoint: /books/<book_id>/borrow/
-    API.post(`/books/${selectedBook}/borrow/`, {
-      user_id: selectedUser,
-      due_date: dueDate,
-    })
-      .then((res) => {
-        // The backend returns something like { message, due_date } in the response
-        setMessage(res.data.message || "Book issued successfully!");
-      })
-      .catch((err) => {
-        console.error("Error issuing book:", err.response || err);
-        setMessage("Failed to issue the book.");
+    try {
+      // The existing borrow endpoint: /books/<book_id>/borrow/
+      const response = await API.post(`/books/${selectedBook}/borrow/`, {
+        user_id: selectedUser,
+        due_date: dueDate,
       });
+      setError("");
+      setMessage(response.data.message || "Book issued successfully!");
+    } catch (err) {
+      console.error("Error issuing book:", err.response || err);
+      setMessage("");
+      setError(err.response?.data?.message || "Failed to issue the book.");
+    }
   };
 
   return (
-    <div className="container mt-4">
-      <h2>Issue a Book</h2>
-      {message && <p>{message}</p>}
+    <div className="container mt-5" style={{ maxWidth: "600px" }}>
+      <div className="card shadow-sm">
+        <div className="card-header bg-primary text-white">
+          <h4 className="mb-0">Issue a Book</h4>
+        </div>
+        <div className="card-body">
+          {/* Show success or error messages */}
+          {message && <div className="alert alert-success">{message}</div>}
+          {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="mb-3">
-        <label className="form-label">User</label>
-        <select
-          className="form-control"
-          value={selectedUser}
-          onChange={(e) => setSelectedUser(e.target.value)}
-        >
-          <option value="">Select a user</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.username}
-            </option>
-          ))}
-        </select>
+          <div className="form-group mb-3">
+            <label className="form-label">User</label>
+            <select
+              className="form-control"
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+            >
+              <option value="">-- Select User --</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.username}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group mb-3">
+            <label className="form-label">Book</label>
+            <select
+              className="form-control"
+              value={selectedBook}
+              onChange={(e) => setSelectedBook(e.target.value)}
+            >
+              <option value="">-- Select a Book --</option>
+              {books.map((book) => (
+                <option key={book.id} value={book.id}>
+                  {book.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group mb-3">
+            <label className="form-label">Due Date</label>
+            <input
+              type="date"
+              className="form-control"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+            <small className="form-text text-muted">
+              Leave blank for default (14 days from now).
+            </small>
+          </div>
+
+          <div className="d-grid">
+            <button className="btn btn-success" onClick={handleIssueBook}>
+              Issue Book
+            </button>
+          </div>
+        </div>
       </div>
-
-      <div className="mb-3">
-        <label className="form-label">Book</label>
-        <select
-          className="form-control"
-          value={selectedBook}
-          onChange={(e) => setSelectedBook(e.target.value)}
-        >
-          <option value="">Select a book</option>
-          {books.map((book) => (
-            <option key={book.id} value={book.id}>
-              {book.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mb-3">
-        <label className="form-label">Due Date</label>
-        <input
-          type="date"
-          className="form-control"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-        />
-      </div>
-
-      <button className="btn btn-primary" onClick={handleIssueBook}>
-        Issue Book
-      </button>
     </div>
   );
 }

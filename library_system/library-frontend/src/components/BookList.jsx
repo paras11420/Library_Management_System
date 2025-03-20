@@ -1,11 +1,17 @@
 import React from "react";
 import { Button, Card, Row, Col, Badge } from "react-bootstrap";
-import { borrowBook, reserveBook, deleteBook } from "../services/bookService";
-import API from "../api"; // We'll need this for the borrow-request endpoint
+import { useNavigate } from "react-router-dom"; // 👈 NEW
+import {
+  borrowBook,
+  reserveBook,
+  deleteBook,
+} from "../../src/services/bookService";
+import API from "../../src/api";
 
 function BookList({ books, role }) {
   const isLibrarian = role === "librarian" || role === "admin";
   const isMember = role === "member";
+  const navigate = useNavigate(); // 👈 NEW
 
   const getEstimatedWaitTime = (book) => {
     return "7 days"; // Placeholder logic
@@ -132,20 +138,18 @@ function BookList({ books, role }) {
                     </Button>
                   )}
 
-                  {/* 👨‍💼 Librarian/Admin only: View Reservations */}
+                  {/* 👨‍💼 Librarian/Admin: View Reservations */}
                   {isLibrarian && (
                     <Button
                       variant="info"
                       size="sm"
-                      onClick={() => {
-                        alert("Navigate to reservation queue page.");
-                      }}
+                      onClick={() => navigate(`/reservations/${book.id}`)} // 👈 UPDATED
                     >
                       View Reservations
                     </Button>
                   )}
 
-                  {/* 👨‍💼 Librarian/Admin only: Edit & Delete */}
+                  {/* 👨‍💼 Librarian/Admin: Edit & Delete */}
                   {isLibrarian && (
                     <>
                       <Button

@@ -4,7 +4,8 @@ import { Navbar, Nav, Container, Button } from "react-bootstrap";
 
 function NavigationBar() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("access_token");
+  // Retrieve the token and role from localStorage
+  const token = localStorage.getItem("token");
   const role = localStorage.getItem("role") || "";
 
   useEffect(() => {
@@ -12,9 +13,11 @@ function NavigationBar() {
   }, [role]);
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    // Remove the token/refresh/role keys that we set in Login.jsx
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
     localStorage.removeItem("role");
+    // Redirect to login
     navigate("/login");
   };
 
