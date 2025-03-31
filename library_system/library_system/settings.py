@@ -2,17 +2,17 @@ import os
 from datetime import timedelta
 from pathlib import Path
 from django.utils.timezone import now
+from dotenv import load_dotenv  # Add this for using .env file
+
+load_dotenv()  # Load environment variables from .env file
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-0+tfj73o^tyv6_2ry7+st8g9@*16e#=f7h4=f2kv$!(1)5+jd='
-)
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-0+tfj73o^tyv6_2ry7+st8g9@*16e#=f7h4=f2kv$!(1)5+jd=')
 
-DEBUG = True  # Set to False in production
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'  # Set to False in production
 
-ALLOWED_HOSTS = ['*']  # Change to specific domains in production
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')  # Update for production
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,6 +38,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'library_system.urls'
@@ -90,7 +91,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'library.User'
 
-CORS_ALLOW_ALL_ORIGINS = True  # Change to specific origins in production
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
+
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -112,16 +117,19 @@ SIMPLE_JWT = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
-# Email Configuration (SMTP with Gmail)
+# Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'Paras11420@gmail.com'
-EMAIL_HOST_PASSWORD = 'hwfr tmsx ynuo siep'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Static file handling for deployment
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
